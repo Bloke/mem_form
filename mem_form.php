@@ -1583,7 +1583,6 @@ This plugin provides HTML form capabilities for other plugins. This allows for c
 h2(#author-contact). Author Contact
 
 "Michael Manfre":mailto:mmanfre@gmail.com?subject=Textpattern%20mem_form%20plugin
-"$":http://manfre.net
 
 h2(#license). License
 
@@ -1881,27 +1880,27 @@ This library allows other plugins to hook in to events with the @register_callba
 
 h2(#plugin-events). Plugin Events
 
-h3(#mem_form.defaults). mem_form.defaults
+h3. mem_form.defaults
 
 Allows a plugin to alter the default values for a form prior to being displayed.
 
-h3(#mem_form.display). mem_form.display
+h3. mem_form.display
 
 Allows a plugin to insert additional html in the rendered html form tag.
 
-h3(#mem_form.submit). mem_form.submit
+h3. mem_form.submit
 
 Allows a plugin to act upon a successful form submission.
 
-h3(#mem_form.spam). mem_form.spam
+h3. mem_form.spam
 
 Allows a plugin to test a submission as spam. The function get_mem_form_evaluator() returns the evaluator.
 
-h3(#mem_form.store_value). mem_form.store_value
+h3. mem_form.store_value
 
 On submit, this event is called for each field that passed the builtin checks and was just stored in to the global variables. The callback step is the field name. This callback can be used for custom field validation. If the value is invalid, return FALSE. Warning: This event is called for each field even if a previously checked field has failed.
 
-h3(#mem_form.validate). mem_form.validate
+h3. mem_form.validate
 
 This event is called on form submit, after the individual fields are parsed and validated. This event is not called if there are any errors after the fields are validated. Any multi&#45;field or form specific validation should happen here. Use mem_form_error() to set any validation error messages to prevent a successful post.
 
