@@ -113,1287 +113,1287 @@ if (class_exists('\Textpattern\Tag\Registry')) {
 
 function mem_form($atts, $thing='', $default=false)
 {
-	global $sitename, $prefs, $file_max_upload_size, $mem_form_error, $mem_form_submit,
-		$mem_form, $mem_form_labels, $mem_form_values, $mem_form_default_break,
-		$mem_form_default, $mem_form_type, $mem_form_thanks_form,
-		$mem_glz_custom_fields_plugin;
+    global $sitename, $prefs, $file_max_upload_size, $mem_form_error, $mem_form_submit,
+        $mem_form, $mem_form_labels, $mem_form_values, $mem_form_default_break,
+        $mem_form_default, $mem_form_type, $mem_form_thanks_form,
+        $mem_glz_custom_fields_plugin;
 
-	extract(mem_form_lAtts(array(
-		'form'		=> '',
-		'thanks_form'	=> '',
-		'thanks'	=> graf(gTxt('mem_form_submitted_thanks')),
-		'label'		=> '',
-		'type'		=> '',
-		'redirect'	=> '',
-		'redirect_form'	=> '',
-		'class'		=> 'memForm',
-		'enctype'	=> '',
-		'file_accept'	=> '',
-		'max_file_size'	=> $file_max_upload_size,
-		'form_expired_msg' => gTxt('mem_form_expired'),
-		'show_error'	=> 1,
-		'show_input'	=> 1,
-		'default_break'	=> br,
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'form'      => '',
+        'thanks_form'   => '',
+        'thanks'    => graf(gTxt('mem_form_submitted_thanks')),
+        'label'     => '',
+        'type'      => '',
+        'redirect'  => '',
+        'redirect_form' => '',
+        'class'     => 'memForm',
+        'enctype'   => '',
+        'file_accept'   => '',
+        'max_file_size' => $file_max_upload_size,
+        'form_expired_msg' => gTxt('mem_form_expired'),
+        'show_error'    => 1,
+        'show_input'    => 1,
+        'default_break' => br,
+    ), $atts));
 
-	if (empty($type) or (empty($form) && empty($thing))) {
-		trigger_error('Argument not specified for mem_form tag', E_USER_WARNING);
+    if (empty($type) or (empty($form) && empty($thing))) {
+        trigger_error('Argument not specified for mem_form tag', E_USER_WARNING);
 
-		return '';
-	}
-	$out = '';
+        return '';
+    }
+    $out = '';
 
-	// init error structure
-	mem_form_error();
+    // init error structure
+    mem_form_error();
 
-	$mem_form_type = $type;
+    $mem_form_type = $type;
 
-	$mem_form_default = is_array($default) ? $default : array();
-	callback_event('mem_form.defaults');
+    $mem_form_default = is_array($default) ? $default : array();
+    callback_event('mem_form.defaults');
 
-	unset($atts['show_error'], $atts['show_input']);
-	$mem_form_id = md5(serialize($atts).preg_replace('/[\t\s\r\n]/','',$thing));
-	$mem_form_submit = (ps('mem_form_id') == $mem_form_id);
+    unset($atts['show_error'], $atts['show_input']);
+    $mem_form_id = md5(serialize($atts).preg_replace('/[\t\s\r\n]/','',$thing));
+    $mem_form_submit = (ps('mem_form_id') == $mem_form_id);
 
-	$nonce   = doSlash(ps('mem_form_nonce'));
-	$renonce = false;
+    $nonce   = doSlash(ps('mem_form_nonce'));
+    $renonce = false;
 
-	if ($mem_form_submit) {
-		safe_delete('txp_discuss_nonce', 'issue_time < date_sub(now(), interval 10 minute)');
-		if ($rs = safe_row('used', 'txp_discuss_nonce', "nonce = '$nonce'"))
-		{
-			if ($rs['used'])
-			{
-				unset($mem_form_error);
-				mem_form_error(gTxt('mem_form_used'));
-				$renonce = true;
+    if ($mem_form_submit) {
+        safe_delete('txp_discuss_nonce', 'issue_time < date_sub(now(), interval 10 minute)');
+        if ($rs = safe_row('used', 'txp_discuss_nonce', "nonce = '$nonce'"))
+        {
+            if ($rs['used'])
+            {
+                unset($mem_form_error);
+                mem_form_error(gTxt('mem_form_used'));
+                $renonce = true;
 
-				$_POST['mem_form_submit'] = TRUE;
-				$_POST['mem_form_id'] = $mem_form_id;
-				$_POST['mem_form_nonce'] = $nonce;
-			}
-		}
-		else
-		{
-			mem_form_error($form_expired_msg);
-			$renonce = true;
-		}
-	}
+                $_POST['mem_form_submit'] = TRUE;
+                $_POST['mem_form_id'] = $mem_form_id;
+                $_POST['mem_form_nonce'] = $nonce;
+            }
+        }
+        else
+        {
+            mem_form_error($form_expired_msg);
+            $renonce = true;
+        }
+    }
 
-	if ($mem_form_submit and $nonce and !$renonce)
-	{
-		$mem_form_nonce = $nonce;
-	}
+    if ($mem_form_submit and $nonce and !$renonce)
+    {
+        $mem_form_nonce = $nonce;
+    }
 
-	elseif (!$show_error or $show_input)
-	{
-		$mem_form_nonce = md5(uniqid(rand(), true));
-		safe_insert('txp_discuss_nonce', "issue_time = now(), nonce = '$mem_form_nonce'");
-	}
+    elseif (!$show_error or $show_input)
+    {
+        $mem_form_nonce = md5(uniqid(rand(), true));
+        safe_insert('txp_discuss_nonce', "issue_time = now(), nonce = '$mem_form_nonce'");
+    }
 
-	$form = ($form) ? fetch_form($form) : $thing;
-	$form = parse($form);
+    $form = ($form) ? fetch_form($form) : $thing;
+    $form = parse($form);
 
-	if ($mem_form_submit && empty($mem_form_error))
-	{
-		// let plugins validate after individual fields are validated
-		callback_event('mem_form.validate');
-	}
+    if ($mem_form_submit && empty($mem_form_error))
+    {
+        // let plugins validate after individual fields are validated
+        callback_event('mem_form.validate');
+    }
 
-	if (!$mem_form_submit) {
-	  # don't show errors or send mail
-	}
-	elseif (mem_form_error())
-	{
-		if ($show_error or !$show_input)
-		{
-			$out .= mem_form_display_error();
+    if (!$mem_form_submit) {
+      # don't show errors or send mail
+    }
+    elseif (mem_form_error())
+    {
+        if ($show_error or !$show_input)
+        {
+            $out .= mem_form_display_error();
 
-			if (!$show_input) return $out;
-		}
-	}
-	elseif ($show_input and is_array($mem_form))
-	{
-		if ($mem_glz_custom_fields_plugin) {
-			// prep the values
-			glz_custom_fields_before_save();
-		}
+            if (!$show_input) return $out;
+        }
+    }
+    elseif ($show_input and is_array($mem_form))
+    {
+        if ($mem_glz_custom_fields_plugin) {
+            // prep the values
+            glz_custom_fields_before_save();
+        }
 
-		callback_event('mem_form.spam');
+        callback_event('mem_form.spam');
 
-		/// load and check spam plugins/
-		$evaluator =& get_mem_form_evaluator();
-		$is_spam = $evaluator->is_spam();
+        /// load and check spam plugins/
+        $evaluator =& get_mem_form_evaluator();
+        $is_spam = $evaluator->is_spam();
 
-		if ($is_spam) {
-			return gTxt('mem_form_spam');
-		}
+        if ($is_spam) {
+            return gTxt('mem_form_spam');
+        }
 
-		$mem_form_thanks_form = ($thanks_form ? fetch_form($thanks_form) : $thanks);
+        $mem_form_thanks_form = ($thanks_form ? fetch_form($thanks_form) : $thanks);
 
-		safe_update('txp_discuss_nonce', "used = '1', issue_time = now()", "nonce = '$nonce'");
+        safe_update('txp_discuss_nonce', "used = '1', issue_time = now()", "nonce = '$nonce'");
 
-		$result = callback_event('mem_form.submit');
+        $result = callback_event('mem_form.submit');
 
-		if (mem_form_error()) {
-			$out .= mem_form_display_error();
-			$redirect = false;
-		}
+        if (mem_form_error()) {
+            $out .= mem_form_display_error();
+            $redirect = false;
+        }
 
-		$thanks_form = $mem_form_thanks_form;
-		unset($mem_form_thanks_form);
+        $thanks_form = $mem_form_thanks_form;
+        unset($mem_form_thanks_form);
 
-		if (!empty($result))
-			return $result;
+        if (!empty($result))
+            return $result;
 
-		if (mem_form_error() and $show_input)
-		{
-			// no-op, reshow form with errors
-		}
-		else if ($redirect)
-		{
-			$_POST = array();
+        if (mem_form_error() and $show_input)
+        {
+            // no-op, reshow form with errors
+        }
+        else if ($redirect)
+        {
+            $_POST = array();
 
-			while (@ob_end_clean());
-			$uri = hu.ltrim($redirect,'/');
-			if (empty($_SERVER['FCGI_ROLE']) and empty($_ENV['FCGI_ROLE']))
-			{
-				txp_status_header('303 See Other');
-				header('Location: '.$uri);
-				header('Connection: close');
-				header('Content-Length: 0');
-			}
-			else
-			{
-				$uri = htmlspecialchars($uri);
-				$refresh = gTxt('mem_form_refresh');
+            while (@ob_end_clean());
+            $uri = hu.ltrim($redirect,'/');
+            if (empty($_SERVER['FCGI_ROLE']) and empty($_ENV['FCGI_ROLE']))
+            {
+                txp_status_header('303 See Other');
+                header('Location: '.$uri);
+                header('Connection: close');
+                header('Content-Length: 0');
+            }
+            else
+            {
+                $uri = htmlspecialchars($uri);
+                $refresh = gTxt('mem_form_refresh');
 
-				if (!empty($redirect_form))
-				{
-					$redirect_form = fetch_form($redirect_form);
+                if (!empty($redirect_form))
+                {
+                    $redirect_form = fetch_form($redirect_form);
 
-					echo str_replace('{uri}', $uri, $redirect_form);
-				}
+                    echo str_replace('{uri}', $uri, $redirect_form);
+                }
 
-				if (empty($redirect_form))
-				{
-					echo <<<END
+                if (empty($redirect_form))
+                {
+                    echo <<<END
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-	<title>$sitename</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<meta http-equiv="refresh" content="0;url=$uri" />
+    <title>$sitename</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="refresh" content="0;url=$uri" />
 </head>
 <body>
 <a href="$uri">$refresh</a>
 </body>
 </html>
 END;
-				}
-			}
-			exit;
-		}
-		else {
-			return '<div class="memThanks" id="mem'.$mem_form_id.'">' .
-				$thanks_form . '</div>';
-		}
-	}
+                }
+            }
+            exit;
+        }
+        else {
+            return '<div class="memThanks" id="mem'.$mem_form_id.'">' .
+                $thanks_form . '</div>';
+        }
+    }
 
-	if ($show_input)
-	{
-		$file_accept = (!empty($file_accept) ? ' accept="'.$file_accept.'"' : '');
+    if ($show_input)
+    {
+        $file_accept = (!empty($file_accept) ? ' accept="'.$file_accept.'"' : '');
 
-		$class = htmlspecialchars($class);
+        $class = htmlspecialchars($class);
 
-		$enctype = !empty($enctype) ? ' enctype="'.$enctype.'"' : '';
+        $enctype = !empty($enctype) ? ' enctype="'.$enctype.'"' : '';
 
-		return '<form method="post"'.((!$show_error and $mem_form_error) ? '' : ' id="mem'.$mem_form_id.'"').' class="'.$class.'" action="'.htmlspecialchars(serverSet('REQUEST_URI')).'#mem'.$mem_form_id.'"'.$file_accept.$enctype.'>'.
-			( $label ? n.'<fieldset>' : n.'<div>' ).
-			( $label ? n.'<legend>'.htmlspecialchars($label).'</legend>' : '' ).
-			$out.
-			n.'<input type="hidden" name="mem_form_nonce" value="'.$mem_form_nonce.'" />'.
-			n.'<input type="hidden" name="mem_form_id" value="'.$mem_form_id.'" />'.
-			(!empty($max_file_size) ? n.'<input type="hidden" name="MAX_FILE_SIZE" value="'.$max_file_size.'" />' : '' ).
-			callback_event('mem_form.display','',1).
-			$form.
-			callback_event('mem_form.display').
-			( $label ? (n.'</fieldset>') : (n.'</div>') ).
-			n.'</form>';
-	}
+        return '<form method="post"'.((!$show_error and $mem_form_error) ? '' : ' id="mem'.$mem_form_id.'"').' class="'.$class.'" action="'.htmlspecialchars(serverSet('REQUEST_URI')).'#mem'.$mem_form_id.'"'.$file_accept.$enctype.'>'.
+            ( $label ? n.'<fieldset>' : n.'<div>' ).
+            ( $label ? n.'<legend>'.htmlspecialchars($label).'</legend>' : '' ).
+            $out.
+            n.'<input type="hidden" name="mem_form_nonce" value="'.$mem_form_nonce.'" />'.
+            n.'<input type="hidden" name="mem_form_id" value="'.$mem_form_id.'" />'.
+            (!empty($max_file_size) ? n.'<input type="hidden" name="MAX_FILE_SIZE" value="'.$max_file_size.'" />' : '' ).
+            callback_event('mem_form.display','',1).
+            $form.
+            callback_event('mem_form.display').
+            ( $label ? (n.'</fieldset>') : (n.'</div>') ).
+            n.'</form>';
+    }
 
-	return '';
+    return '';
 }
 
 function mem_form_text($atts)
 {
-	global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
+    global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'break'        => $mem_form_default_break,
-		'default'      => '',
-		'isError'      => '',
-		'label'        => gTxt('text'),
-		'placeholder'  => '',
-		'max'          => 100,
-		'min'          => 0,
-		'name'         => '',
-		'class'        => 'memText',
-		'required'     => 1,
-		'size'         => '',
-		'password'     => 0,
-		'format'       => '',
-		'example'      => '',
-		'escape_value' => 1,
-		'attrs'        => ''
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'break'        => $mem_form_default_break,
+        'default'      => '',
+        'isError'      => '',
+        'label'        => gTxt('text'),
+        'placeholder'  => '',
+        'max'          => 100,
+        'min'          => 0,
+        'name'         => '',
+        'class'        => 'memText',
+        'required'     => 1,
+        'size'         => '',
+        'password'     => 0,
+        'format'       => '',
+        'example'      => '',
+        'escape_value' => 1,
+        'attrs'        => ''
+    ), $atts));
 
-	$min = intval($min);
-	$max = intval($max);
-	$size = intval($size);
+    $min = intval($min);
+    $max = intval($max);
+    $size = intval($size);
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	if ($mem_form_submit)
-	{
-		$value = trim(ps($name));
-		$utf8len = preg_match_all("/./su", $value, $utf8ar);
-		$hlabel = empty($label) ? htmlspecialchars($name) : htmlspecialchars($label);
+    if ($mem_form_submit)
+    {
+        $value = trim(ps($name));
+        $utf8len = preg_match_all("/./su", $value, $utf8ar);
+        $hlabel = empty($label) ? htmlspecialchars($name) : htmlspecialchars($label);
 
 
-		if (strlen($value) == 0 && $required)
-		{
-			$mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=>$hlabel));
-			$isError = true;
-		}
-		elseif ($required && !empty($format) && !preg_match($format, $value))
-		{
-			//echo "format=$format<br />value=$value<br />";
-			$mem_form_error[] = gTxt('mem_form_invalid_format', array('{label}'=>$hlabel, '{example}'=> htmlspecialchars($example)));
-			$isError = true;
-		}
-		elseif (strlen($value))
-		{
-			if (!$utf8len)
-			{
-				$mem_form_error[] = gTxt('mem_form_invalid_utf8', array('{label}'=>$hlabel));
-				$isError = true;
-			}
+        if (strlen($value) == 0 && $required)
+        {
+            $mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=>$hlabel));
+            $isError = true;
+        }
+        elseif ($required && !empty($format) && !preg_match($format, $value))
+        {
+            //echo "format=$format<br />value=$value<br />";
+            $mem_form_error[] = gTxt('mem_form_invalid_format', array('{label}'=>$hlabel, '{example}'=> htmlspecialchars($example)));
+            $isError = true;
+        }
+        elseif (strlen($value))
+        {
+            if (!$utf8len)
+            {
+                $mem_form_error[] = gTxt('mem_form_invalid_utf8', array('{label}'=>$hlabel));
+                $isError = true;
+            }
 
-			elseif ($min and $utf8len < $min)
-			{
-				$mem_form_error[] = gTxt('mem_form_min_warning', array('{label}'=>$hlabel, '{min}'=>$min));
-				$isError = true;
-			}
+            elseif ($min and $utf8len < $min)
+            {
+                $mem_form_error[] = gTxt('mem_form_min_warning', array('{label}'=>$hlabel, '{min}'=>$min));
+                $isError = true;
+            }
 
-			elseif ($max and $utf8len > $max)
-			{
-				$mem_form_error[] = gTxt('mem_form_max_warning', array('{label}'=>$hlabel, '{max}'=>$max));
-				$isError = true;
-			}
+            elseif ($max and $utf8len > $max)
+            {
+                $mem_form_error[] = gTxt('mem_form_max_warning', array('{label}'=>$hlabel, '{max}'=>$max));
+                $isError = true;
+            }
 
-			else
-			{
-				$isError = false === mem_form_store($name, $label, $value);
-			}
-		}
-	}
+            else
+            {
+                $isError = false === mem_form_store($name, $label, $value);
+            }
+        }
+    }
 
-	else
-	{
-		if (isset($mem_form_default[$name]))
-			$value = $mem_form_default[$name];
-		else
-			$value = $default;
-	}
+    else
+    {
+        if (isset($mem_form_default[$name]))
+            $value = $mem_form_default[$name];
+        else
+            $value = $default;
+    }
 
-	$size = ($size) ? ' size="'.$size.'"' : '';
-	$maxlength = ($max) ? ' maxlength="'.$max.'"' : '';
-	$placeholder = ($placeholder) ? ' placeholder="'.htmlspecialchars($placeholder).'"' : '';
+    $size = ($size) ? ' size="'.$size.'"' : '';
+    $maxlength = ($max) ? ' maxlength="'.$max.'"' : '';
+    $placeholder = ($placeholder) ? ' placeholder="'.htmlspecialchars($placeholder).'"' : '';
 
-	$isError = $isError ? "errorElement" : '';
+    $isError = $isError ? "errorElement" : '';
 
-	$memRequired = $required ? 'memRequired' : '';
-	$class = htmlspecialchars($class);
+    $memRequired = $required ? 'memRequired' : '';
+    $class = htmlspecialchars($class);
 
-	if ($escape_value)
-	{
-		$value = htmlspecialchars($value);
-	}
+    if ($escape_value)
+    {
+        $value = htmlspecialchars($value);
+    }
 
     return '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break.
-		'<input type="'.($password ? 'password' : 'text').'" id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'" value="'.$value.'"'.$size.$maxlength.$placeholder.
-		( !empty($attrs) ? ' ' . $attrs : '').' />';
+        '<input type="'.($password ? 'password' : 'text').'" id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'" value="'.$value.'"'.$size.$maxlength.$placeholder.
+        ( !empty($attrs) ? ' ' . $attrs : '').' />';
 }
 
 
 function mem_form_file($atts)
 {
-	global $mem_form_submit, $mem_form_error, $mem_form_default, $file_max_upload_size, $tempdir, $mem_form_default_break;
+    global $mem_form_submit, $mem_form_error, $mem_form_default, $file_max_upload_size, $tempdir, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'break'		=> $mem_form_default_break,
-		'isError'	=> '',
-		'label'		=> gTxt('file'),
-		'name'		=> '',
-		'class'		=> 'memFile',
-		'size'		=> '',
-		'accept'	=> '',
-		'no_replace' => 1,
-		'max_file_size'	=> $file_max_upload_size,
-		'required'	=> 1,
-		'default'	=> FALSE,
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'break'     => $mem_form_default_break,
+        'isError'   => '',
+        'label'     => gTxt('file'),
+        'name'      => '',
+        'class'     => 'memFile',
+        'size'      => '',
+        'accept'    => '',
+        'no_replace' => 1,
+        'max_file_size' => $file_max_upload_size,
+        'required'  => 1,
+        'default'   => FALSE,
+    ), $atts));
 
-	$fname = ps('file_'.$name);
-	$frealname = ps('file_info_'.$name.'_name');
-	$ftype = ps('file_info_'.$name.'_type');
+    $fname = ps('file_'.$name);
+    $frealname = ps('file_info_'.$name.'_name');
+    $ftype = ps('file_info_'.$name.'_type');
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	$out = '';
+    $out = '';
 
-	if ($mem_form_submit)
-	{
-		if (!empty($fname))
-		{
-			// see if user uploaded a different file to replace already uploaded
-			if (isset($_FILES[$name]) && !empty($_FILES[$name]['tmp_name']))
-			{
-				// unlink last temp file
-				if (file_exists($fname) && substr_compare($fname, $tempdir, 0, strlen($tempdir), 1)==0)
-					unlink($fname);
+    if ($mem_form_submit)
+    {
+        if (!empty($fname))
+        {
+            // see if user uploaded a different file to replace already uploaded
+            if (isset($_FILES[$name]) && !empty($_FILES[$name]['tmp_name']))
+            {
+                // unlink last temp file
+                if (file_exists($fname) && substr_compare($fname, $tempdir, 0, strlen($tempdir), 1)==0)
+                    unlink($fname);
 
-				$fname = '';
-			}
-			else
-			{
-				// pass through already uploaded filename
-				mem_form_store($name, $label, array('tmp_name'=>$fname, 'name' => $frealname, 'type' => $ftype));
-				$out .= "<input type='hidden' name='file_".$name."' value='".htmlspecialchars($fname)."' />"
-						. "<input type='hidden' name='file_info_".$name."_name' value='".htmlspecialchars($frealname)."' />"
-						. "<input type='hidden' name='file_info_".$name."_type' value='".htmlspecialchars($ftype)."' />";
-			}
-		}
+                $fname = '';
+            }
+            else
+            {
+                // pass through already uploaded filename
+                mem_form_store($name, $label, array('tmp_name'=>$fname, 'name' => $frealname, 'type' => $ftype));
+                $out .= "<input type='hidden' name='file_".$name."' value='".htmlspecialchars($fname)."' />"
+                        . "<input type='hidden' name='file_info_".$name."_name' value='".htmlspecialchars($frealname)."' />"
+                        . "<input type='hidden' name='file_info_".$name."_type' value='".htmlspecialchars($ftype)."' />";
+            }
+        }
 
-		if (empty($fname))
-		{
-			$hlabel = empty($label) ? htmlspecialchars($name) : htmlspecialchars($label);
+        if (empty($fname))
+        {
+            $hlabel = empty($label) ? htmlspecialchars($name) : htmlspecialchars($label);
 
-			$fname = $_FILES[$name]['tmp_name'];
-			$frealname = $_FILES[$name]['name'];
-			$ftype = $_FILES[$name]['type'];
-			$err = 0;
+            $fname = $_FILES[$name]['tmp_name'];
+            $frealname = $_FILES[$name]['name'];
+            $ftype = $_FILES[$name]['type'];
+            $err = 0;
 
-			switch ($_FILES[$name]['error']) {
-				case UPLOAD_ERR_OK:
-					if (is_uploaded_file($fname) and $max_file_size >= filesize($fname))
-						mem_form_store($name, $label, $_FILES[$name]);
-					elseif (!is_uploaded_file($fname)) {
-						if ($required) {
-							$mem_form_error[] = gTxt('mem_form_error_file_failed', array('{label}'=>$hlabel));
-							$err = 1;
-						}
-					}
-					else {
-						$mem_form_error[] = gTxt('mem_form_error_file_size', array('{label}'=>$hlabel));
-						$err = 1;
-					}
-					break;
+            switch ($_FILES[$name]['error']) {
+                case UPLOAD_ERR_OK:
+                    if (is_uploaded_file($fname) and $max_file_size >= filesize($fname))
+                        mem_form_store($name, $label, $_FILES[$name]);
+                    elseif (!is_uploaded_file($fname)) {
+                        if ($required) {
+                            $mem_form_error[] = gTxt('mem_form_error_file_failed', array('{label}'=>$hlabel));
+                            $err = 1;
+                        }
+                    }
+                    else {
+                        $mem_form_error[] = gTxt('mem_form_error_file_size', array('{label}'=>$hlabel));
+                        $err = 1;
+                    }
+                    break;
 
-				case UPLOAD_ERR_NO_FILE:
-					if ($required) {
-						$mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=>$hlabel));
-						$err = 1;
-					}
-					break;
+                case UPLOAD_ERR_NO_FILE:
+                    if ($required) {
+                        $mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=>$hlabel));
+                        $err = 1;
+                    }
+                    break;
 
-				case UPLOAD_ERR_EXTENSION:
-					$mem_form_error[] = gTxt('mem_form_error_file_extension', array('{label}'=>$hlabel));
-					$err = 1;
-					break;
+                case UPLOAD_ERR_EXTENSION:
+                    $mem_form_error[] = gTxt('mem_form_error_file_extension', array('{label}'=>$hlabel));
+                    $err = 1;
+                    break;
 
-				case UPLOAD_ERR_INI_SIZE:
-				case UPLOAD_ERR_FORM_SIZE:
-					$mem_form_error[] = gTxt('mem_form_error_file_size', array('{label}'=>$hlabel));
-					$err = 1;
-					break;
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $mem_form_error[] = gTxt('mem_form_error_file_size', array('{label}'=>$hlabel));
+                    $err = 1;
+                    break;
 
-				default:
-					$mem_form_error[] = gTxt('mem_form_error_file_failed', array('{label}'=>$hlabel));
-					$err = 1;
-					break;
-			}
+                default:
+                    $mem_form_error[] = gTxt('mem_form_error_file_failed', array('{label}'=>$hlabel));
+                    $err = 1;
+                    break;
+            }
 
-			if (!$err)
-			{
-				// store as a txp tmp file to be used later
-				$fname = get_uploaded_file($fname);
-				$err = false === mem_form_store($name, $label, array('tmp_name'=>$fname, 'name' => $frealname, 'type' => $ftype));
-				if ($err)
-				{
-					// clean up file
-					@unlink($fname);
-				}
-				else
-				{
-					$out .= "<input type='hidden' name='file_".$name."' value='".htmlspecialchars($fname)."' />"
-							. "<input type='hidden' name='file_info_".$name."_name' value='".htmlspecialchars($_FILES[$name]['name'])."' />"
-							. "<input type='hidden' name='file_info_".$name."_type' value='".htmlspecialchars($_FILES[$name]['type'])."' />";
-				}
-			}
+            if (!$err)
+            {
+                // store as a txp tmp file to be used later
+                $fname = get_uploaded_file($fname);
+                $err = false === mem_form_store($name, $label, array('tmp_name'=>$fname, 'name' => $frealname, 'type' => $ftype));
+                if ($err)
+                {
+                    // clean up file
+                    @unlink($fname);
+                }
+                else
+                {
+                    $out .= "<input type='hidden' name='file_".$name."' value='".htmlspecialchars($fname)."' />"
+                            . "<input type='hidden' name='file_info_".$name."_name' value='".htmlspecialchars($_FILES[$name]['name'])."' />"
+                            . "<input type='hidden' name='file_info_".$name."_type' value='".htmlspecialchars($_FILES[$name]['type'])."' />";
+                }
+            }
 
-			$isError = $err ? 'errorElement' : '';
-		}
-	}
-	else
-	{
-		if (isset($mem_form_default[$name]))
-			$value = $mem_form_default[$name];
-		else if (is_array($default))
-			$value = $default;
+            $isError = $err ? 'errorElement' : '';
+        }
+    }
+    else
+    {
+        if (isset($mem_form_default[$name]))
+            $value = $mem_form_default[$name];
+        else if (is_array($default))
+            $value = $default;
 
-		if (is_array(@$value))
-		{
-			$fname = @$value['tmp_name'];
-			$frealname = @$value['name'];
-			$ftype = @$value['type'];
-			$out .= "<input type='hidden' name='file_".$name."' value='".htmlspecialchars($fname)."' />"
-				. "<input type='hidden' name='file_info_".$name."_name' value='".htmlspecialchars($frealname)."' />"
-				. "<input type='hidden' name='file_info_".$name."_type' value='".htmlspecialchars($ftype)."' />";
-		}
-	}
+        if (is_array(@$value))
+        {
+            $fname = @$value['tmp_name'];
+            $frealname = @$value['name'];
+            $ftype = @$value['type'];
+            $out .= "<input type='hidden' name='file_".$name."' value='".htmlspecialchars($fname)."' />"
+                . "<input type='hidden' name='file_info_".$name."_name' value='".htmlspecialchars($frealname)."' />"
+                . "<input type='hidden' name='file_info_".$name."_type' value='".htmlspecialchars($ftype)."' />";
+        }
+    }
 
-	$memRequired = $required ? 'memRequired' : '';
-	$class = htmlspecialchars($class);
+    $memRequired = $required ? 'memRequired' : '';
+    $class = htmlspecialchars($class);
 
-	$size = ($size) ? ' size="'.$size.'"' : '';
-	$accept = (!empty($accept) ? ' accept="'.$accept.'"' : '');
+    $size = ($size) ? ' size="'.$size.'"' : '';
+    $accept = (!empty($accept) ? ' accept="'.$accept.'"' : '');
 
 
-	$field_out = '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break;
+    $field_out = '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break;
 
-	if (!empty($frealname) && $no_replace)
-	{
-		$field_out .= '<div id="'.$name.'">'.htmlspecialchars($frealname) . ' <span id="'.$name.'_ftype">('. htmlspecialchars($ftype).')</span></div>';
-	}
-	else
-	{
-		$field_out .= '<input type="file" id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'"' .$size.' />';
-	}
+    if (!empty($frealname) && $no_replace)
+    {
+        $field_out .= '<div id="'.$name.'">'.htmlspecialchars($frealname) . ' <span id="'.$name.'_ftype">('. htmlspecialchars($ftype).')</span></div>';
+    }
+    else
+    {
+        $field_out .= '<input type="file" id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'"' .$size.' />';
+    }
 
   return $out.$field_out;
 }
 
 function mem_form_textarea($atts, $thing='')
 {
-	global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
+    global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'break'        => $mem_form_default_break,
-		'cols'         => 58,
-		'default'      => '',
-		'isError'      => '',
-		'label'        => gTxt('textarea'),
-		'placeholder'  => '',
-		'max'          => 10000,
-		'min'          => 0,
-		'name'         => '',
-		'class'        => 'memTextarea',
-		'required'     => 1,
-		'rows'         => 8,
-		'escape_value' => 1,
-		'attrs'        => ''
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'break'        => $mem_form_default_break,
+        'cols'         => 58,
+        'default'      => '',
+        'isError'      => '',
+        'label'        => gTxt('textarea'),
+        'placeholder'  => '',
+        'max'          => 10000,
+        'min'          => 0,
+        'name'         => '',
+        'class'        => 'memTextarea',
+        'required'     => 1,
+        'rows'         => 8,
+        'escape_value' => 1,
+        'attrs'        => ''
+    ), $atts));
 
-	$min = intval($min);
-	$max = intval($max);
-	$cols = intval($cols);
-	$rows = intval($rows);
+    $min = intval($min);
+    $max = intval($max);
+    $cols = intval($cols);
+    $rows = intval($rows);
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	if ($mem_form_submit)
-	{
-		$value = preg_replace('/^\s*[\r\n]/', '', rtrim(ps($name)));
-		$utf8len = preg_match_all("/./su", ltrim($value), $utf8ar);
-		$hlabel = htmlspecialchars($label);
+    if ($mem_form_submit)
+    {
+        $value = preg_replace('/^\s*[\r\n]/', '', rtrim(ps($name)));
+        $utf8len = preg_match_all("/./su", ltrim($value), $utf8ar);
+        $hlabel = htmlspecialchars($label);
 
-		if (strlen(ltrim($value)))
-		{
-			if (!$utf8len)
-			{
-				$mem_form_error[] = gTxt('mem_form_invalid_utf8', array('{label}'=>$hlabel));
-				$isError = true;
-			}
+        if (strlen(ltrim($value)))
+        {
+            if (!$utf8len)
+            {
+                $mem_form_error[] = gTxt('mem_form_invalid_utf8', array('{label}'=>$hlabel));
+                $isError = true;
+            }
 
-			elseif ($min and $utf8len < $min)
-			{
-				$mem_form_error[] = gTxt('mem_form_min_warning', array('{label}'=>$hlabel, '{min}'=>$min));
-				$isError = true;
-			}
+            elseif ($min and $utf8len < $min)
+            {
+                $mem_form_error[] = gTxt('mem_form_min_warning', array('{label}'=>$hlabel, '{min}'=>$min));
+                $isError = true;
+            }
 
-			elseif ($max and $utf8len > $max)
-			{
-				$mem_form_error[] = gTxt('mem_form_max_warning', array('{label}'=>$hlabel, '{max}'=>$max));
-				$isError = true;
-			}
+            elseif ($max and $utf8len > $max)
+            {
+                $mem_form_error[] = gTxt('mem_form_max_warning', array('{label}'=>$hlabel, '{max}'=>$max));
+                $isError = true;
+            }
 
-			else
-			{
-				$isError = false === mem_form_store($name, $label, $value);
-			}
-		}
+            else
+            {
+                $isError = false === mem_form_store($name, $label, $value);
+            }
+        }
 
-		elseif ($required)
-		{
-			$mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=>$hlabel));
-			$isError = true;
-		}
-	}
+        elseif ($required)
+        {
+            $mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=>$hlabel));
+            $isError = true;
+        }
+    }
 
-	else
-	{
-		if (isset($mem_form_default[$name]))
-			$value = $mem_form_default[$name];
-		else if (!empty($default))
-			$value = $default;
-		else
-			$value = parse($thing);
-	}
+    else
+    {
+        if (isset($mem_form_default[$name]))
+            $value = $mem_form_default[$name];
+        else if (!empty($default))
+            $value = $default;
+        else
+            $value = parse($thing);
+    }
 
-	$isError = $isError ? 'errorElement' : '';
-	$memRequired = $required ? 'memRequired' : '';
-	$class = htmlspecialchars($class);
-	$placeholder = ($placeholder) ? ' placeholder="'.htmlspecialchars($placeholder).'"' : '';
+    $isError = $isError ? 'errorElement' : '';
+    $memRequired = $required ? 'memRequired' : '';
+    $class = htmlspecialchars($class);
+    $placeholder = ($placeholder) ? ' placeholder="'.htmlspecialchars($placeholder).'"' : '';
 
-	if ($escape_value)
-	{
-		$value = htmlspecialchars($value);
-	}
+    if ($escape_value)
+    {
+        $value = htmlspecialchars($value);
+    }
 
-	return '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break.
-		'<textarea id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'" cols="'.$cols.'" rows="'.$rows.'"'.$placeholder.
-		( !empty($attrs) ? ' ' . $attrs : '').'>'.$value.'</textarea>';
+    return '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break.
+        '<textarea id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'" cols="'.$cols.'" rows="'.$rows.'"'.$placeholder.
+        ( !empty($attrs) ? ' ' . $attrs : '').'>'.$value.'</textarea>';
 }
 
 function mem_form_email($atts)
 {
-	global $mem_form_error, $mem_form_submit, $mem_form_from, $mem_form_default, $mem_form_default_break;
+    global $mem_form_error, $mem_form_submit, $mem_form_from, $mem_form_default, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'default'     => '',
-		'isError'     => '',
-		'label'       => gTxt('email'),
-		'placeholder' => '',
-		'max'         => 100,
-		'min'         => 0,
-		'name'        => '',
-		'required'    => 1,
-		'break'       => $mem_form_default_break,
-		'size'        => '',
-		'class'       => 'memEmail',
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'default'     => '',
+        'isError'     => '',
+        'label'       => gTxt('email'),
+        'placeholder' => '',
+        'max'         => 100,
+        'min'         => 0,
+        'name'        => '',
+        'required'    => 1,
+        'break'       => $mem_form_default_break,
+        'size'        => '',
+        'class'       => 'memEmail',
+    ), $atts));
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	if ($mem_form_submit)
-	{
-		$email = trim(ps($name));
+    if ($mem_form_submit)
+    {
+        $email = trim(ps($name));
 
-		if (strlen($email))
-		{
-			if (!is_valid_email($email))
-			{
-				$mem_form_error[] = gTxt('mem_form_invalid_email', array('{email}'=>htmlspecialchars($email)));
-				$isError = true;
-			}
-			else
-			{
-				preg_match("/@(.+)$/", $email, $match);
-				$domain = $match[1];
+        if (strlen($email))
+        {
+            if (!is_valid_email($email))
+            {
+                $mem_form_error[] = gTxt('mem_form_invalid_email', array('{email}'=>htmlspecialchars($email)));
+                $isError = true;
+            }
+            else
+            {
+                preg_match("/@(.+)$/", $email, $match);
+                $domain = $match[1];
 
-				if (is_callable('checkdnsrr') and checkdnsrr('textpattern.com.','A') and !checkdnsrr($domain.'.','MX') and !checkdnsrr($domain.'.','A'))
-				{
-					$mem_form_error[] = gTxt('mem_form_invalid_host', array('{domain}'=>htmlspecialchars($domain)));
-					$isError = true;
-				}
-				else
-				{
-					$mem_form_from = $email;
-				}
-			}
-		}
-	}
-	else
-	{
-		if (isset($mem_form_default[$name]))
-			$email = $mem_form_default[$name];
-		else
-			$email = $default;
-	}
+                if (is_callable('checkdnsrr') and checkdnsrr('textpattern.com.','A') and !checkdnsrr($domain.'.','MX') and !checkdnsrr($domain.'.','A'))
+                {
+                    $mem_form_error[] = gTxt('mem_form_invalid_host', array('{domain}'=>htmlspecialchars($domain)));
+                    $isError = true;
+                }
+                else
+                {
+                    $mem_form_from = $email;
+                }
+            }
+        }
+    }
+    else
+    {
+        if (isset($mem_form_default[$name]))
+            $email = $mem_form_default[$name];
+        else
+            $email = $default;
+    }
 
-	return mem_form_text(array(
-		'default'     => $email,
-		'isError'     => $isError,
-		'label'       => $label,
-		'placeholder' => $placeholder,
-		'max'         => $max,
-		'min'         => $min,
-		'name'        => $name,
-		'required'    => $required,
-		'break'       => $break,
-		'size'        => $size,
-		'class'       => $class,
-	));
+    return mem_form_text(array(
+        'default'     => $email,
+        'isError'     => $isError,
+        'label'       => $label,
+        'placeholder' => $placeholder,
+        'max'         => $max,
+        'min'         => $min,
+        'name'        => $name,
+        'required'    => $required,
+        'break'       => $break,
+        'size'        => $size,
+        'class'       => $class,
+    ));
 }
 
 function mem_form_select_section($atts)
 {
-	extract(mem_form_lAtts(array(
-		'exclude'	=> '',
-		'sort'		=> 'name ASC',
-		'delimiter'	=> ',',
-	),$atts,false));
+    extract(mem_form_lAtts(array(
+        'exclude'   => '',
+        'sort'      => 'name ASC',
+        'delimiter' => ',',
+    ),$atts,false));
 
-	if (!empty($exclude)) {
-		$exclusion = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$exclude)));
-		$exclusion = array_map('strtolower', $exclusion);
+    if (!empty($exclude)) {
+        $exclusion = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$exclude)));
+        $exclusion = array_map('strtolower', $exclusion);
 
-		if (count($exclusion))
-			$exclusion = join($delimiter, quote_list($exclusion));
-	}
+        if (count($exclusion))
+            $exclusion = join($delimiter, quote_list($exclusion));
+    }
 
-	$where = empty($exclusion) ? '1=1' : 'LOWER(name) NOT IN ('.$exclusion.')';
+    $where = empty($exclusion) ? '1=1' : 'LOWER(name) NOT IN ('.$exclusion.')';
 
-	$sort = empty($sort) ? '' : ' ORDER BY '. doSlash($sort);
+    $sort = empty($sort) ? '' : ' ORDER BY '. doSlash($sort);
 
-	$rs = safe_rows('name, title','txp_section',$where . $sort);
+    $rs = safe_rows('name, title','txp_section',$where . $sort);
 
-	$items = array();
-	$values = array();
+    $items = array();
+    $values = array();
 
-	if ($rs) {
-		foreach($rs as $r) {
-			$items[] = $r['title'];
-			$values[] = $r['name'];
-		}
-	}
+    if ($rs) {
+        foreach($rs as $r) {
+            $items[] = $r['title'];
+            $values[] = $r['name'];
+        }
+    }
 
-	unset($atts['exclude'], $atts['sort']);
+    unset($atts['exclude'], $atts['sort']);
 
-	$atts['items'] = join($delimiter, $items);
-	$atts['values'] = join($delimiter, $values);
+    $atts['items'] = join($delimiter, $items);
+    $atts['values'] = join($delimiter, $values);
 
-	return mem_form_select($atts);
+    return mem_form_select($atts);
 }
 
 function mem_form_select_category($atts)
 {
-	extract(mem_form_lAtts(array(
-		'root'	=> 'root',
-		'exclude'	=> '',
-		'delimiter'	=> ',',
-		'type'	=> 'article'
-	),$atts,false));
+    extract(mem_form_lAtts(array(
+        'root'  => 'root',
+        'exclude'   => '',
+        'delimiter' => ',',
+        'type'  => 'article'
+    ),$atts,false));
 
-	$rs = getTree($root, $type);
+    $rs = getTree($root, $type);
 
-	if (!empty($exclude)) {
-		$exclusion = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$exclude)));
-		$exclusion = array_map('strtolower', $exclusion);
-	}
-	else
-		$exclusion = array();
+    if (!empty($exclude)) {
+        $exclusion = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$exclude)));
+        $exclusion = array_map('strtolower', $exclusion);
+    }
+    else
+        $exclusion = array();
 
-	$items = array();
-	$values = array();
+    $items = array();
+    $values = array();
 
-	if ($rs) {
-		foreach ($rs as $cat) {
-			if (count($exclusion) && in_array(strtolower($cat['name']), $exclusion))
-				continue;
+    if ($rs) {
+        foreach ($rs as $cat) {
+            if (count($exclusion) && in_array(strtolower($cat['name']), $exclusion))
+                continue;
 
-			$items[] = $cat['title'];
-			$values[] = $cat['name'];
-		}
-	}
+            $items[] = $cat['title'];
+            $values[] = $cat['name'];
+        }
+    }
 
-	unset($atts['root'], $atts['type']);
+    unset($atts['root'], $atts['type']);
 
-	$atts['items'] = join($delimiter, $items);
-	$atts['values'] = join($delimiter, $values);
+    $atts['items'] = join($delimiter, $items);
+    $atts['values'] = join($delimiter, $values);
 
-	return mem_form_select($atts);
+    return mem_form_select($atts);
 }
 
 function mem_form_select_range($atts)
 {
-	global $mem_form_default_break;
+    global $mem_form_default_break;
 
-	$latts = mem_form_lAtts(array(
-		'start'		=> 0,
-		'stop'		=> false,
-		'step'		=> 1,
-		'name'		=> '',
-		'break'		=> $mem_form_default_break,
-		'delimiter'	=> ',',
-		'isError'	=> '',
-		'label'		=> gTxt('option'),
-		'first'		=> FALSE,
-		'required'	=> 1,
-		'select_limit'	=> FALSE,
-		'as_csv'	=> FALSE,
-		'selected'	=> '',
-		'class'		=> 'memSelect',
-		'attrs'		=> ''
-	), $atts);
+    $latts = mem_form_lAtts(array(
+        'start'     => 0,
+        'stop'      => false,
+        'step'      => 1,
+        'name'      => '',
+        'break'     => $mem_form_default_break,
+        'delimiter' => ',',
+        'isError'   => '',
+        'label'     => gTxt('option'),
+        'first'     => FALSE,
+        'required'  => 1,
+        'select_limit'  => FALSE,
+        'as_csv'    => FALSE,
+        'selected'  => '',
+        'class'     => 'memSelect',
+        'attrs'     => ''
+    ), $atts);
 
-	if ($stop === false)
-	{
-		trigger_error(gTxt('missing_required_attribute', array('{name}' => 'stop')), E_USER_ERROR);
-	}
+    if ($stop === false)
+    {
+        trigger_error(gTxt('missing_required_attribute', array('{name}' => 'stop')), E_USER_ERROR);
+    }
 
-	$step = empty($latts['step']) ? 1 : assert_int($latts['step']);
-	$start= assert_int($latts['start']);
-	$stop = assert_int($latts['stop']);
+    $step = empty($latts['step']) ? 1 : assert_int($latts['step']);
+    $start= assert_int($latts['start']);
+    $stop = assert_int($latts['stop']);
 
-	// fixup start/stop based upon step direction
-	$start = $step > 0 ? min($start, $stop) : max($start, $stop);
-	$stop = $step > 0 ? max($start, $stop) : min($start, $stop);
+    // fixup start/stop based upon step direction
+    $start = $step > 0 ? min($start, $stop) : max($start, $stop);
+    $stop = $step > 0 ? max($start, $stop) : min($start, $stop);
 
-	$values = array();
-	for($i=$start; $i >= $start && $i < $stop; $i += $step)
-	{
-		array_push($values, $i);
-	}
+    $values = array();
+    for($i=$start; $i >= $start && $i < $stop; $i += $step)
+    {
+        array_push($values, $i);
+    }
 
-	// intentional trample
-	$latts['items'] = $latts['values'] = implode($latts['delimiter'], $values);
+    // intentional trample
+    $latts['items'] = $latts['values'] = implode($latts['delimiter'], $values);
 
-	return mem_form_select($latts);
+    return mem_form_select($latts);
 }
 
 function mem_form_select($atts)
 {
-	global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
+    global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'name'		=> '',
-		'break'		=> $mem_form_default_break,
-		'delimiter'	=> ',',
-		'isError'	=> '',
-		'label'		=> gTxt('option'),
-		'items'		=> gTxt('mem_form_general_inquiry'),
-		'values'	=> '',
-		'first'		=> FALSE,
-		'required'	=> 1,
-		'select_limit'	=> FALSE,
-		'as_csv'	=> FALSE,
-		'selected'	=> '',
-		'class'		=> 'memSelect',
-		'attrs'		=> ''
-	), $atts, false));
+    extract(mem_form_lAtts(array(
+        'name'      => '',
+        'break'     => $mem_form_default_break,
+        'delimiter' => ',',
+        'isError'   => '',
+        'label'     => gTxt('option'),
+        'items'     => gTxt('mem_form_general_inquiry'),
+        'values'    => '',
+        'first'     => FALSE,
+        'required'  => 1,
+        'select_limit'  => FALSE,
+        'as_csv'    => FALSE,
+        'selected'  => '',
+        'class'     => 'memSelect',
+        'attrs'     => ''
+    ), $atts, false));
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	if (!empty($items) && $items[0] == '<') $items = parse($items);
-	if (!empty($values) && $values[0] == '<') $values = parse($values);
+    if (!empty($items) && $items[0] == '<') $items = parse($items);
+    if (!empty($values) && $values[0] == '<') $values = parse($values);
 
-	if ($first !== FALSE) {
-		$items = $first.$delimiter.$atts['items'];
-		$values = $first.$delimiter.$atts['values'];
-	}
+    if ($first !== FALSE) {
+        $items = $first.$delimiter.$atts['items'];
+        $values = $first.$delimiter.$atts['values'];
+    }
 
-	$select_limit = empty($select_limit) ? 1 : assert_int($select_limit);
+    $select_limit = empty($select_limit) ? 1 : assert_int($select_limit);
 
-	$items = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$items)));
-	$values = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$values)));
-	if ($select_limit > 1)
-	{
-		$selected = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$seelcted)));
-	}
-	else
-	{
-		$selected = array(trim($selected));
-	}
+    $items = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$items)));
+    $values = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$values)));
+    if ($select_limit > 1)
+    {
+        $selected = array_map('trim', explode($delimiter, preg_replace('/[\r\n\t\s]+/', ' ',$seelcted)));
+    }
+    else
+    {
+        $selected = array(trim($selected));
+    }
 
-	$use_values_array = (count($items) == count($values));
+    $use_values_array = (count($items) == count($values));
 
-	if ($mem_form_submit)
-	{
-		if (strpos($name, '[]'))
-		{
-			$value = ps(substr($name, 0, strlen($name)-2));
+    if ($mem_form_submit)
+    {
+        if (strpos($name, '[]'))
+        {
+            $value = ps(substr($name, 0, strlen($name)-2));
 
-			$selected = $value;
+            $selected = $value;
 
-			if ($as_csv)
-			{
-				$value = implode($delimiter, $value);
-			}
-		}
-		else
-		{
-			$value = trim(ps($name));
+            if ($as_csv)
+            {
+                $value = implode($delimiter, $value);
+            }
+        }
+        else
+        {
+            $value = trim(ps($name));
 
-			$selected = array($value);
-		}
+            $selected = array($value);
+        }
 
-		if (!empty($selected))
-		{
-			if (count($selected) <= $select_limit)
-			{
-				foreach ($selected as $v)
-				{
-					$is_valid = ($use_values_array && in_array($v, $values)) or (!$use_values_array && in_array($v, $items));
-					if (!$is_valid)
-					{
-						$invalid_value = $v;
-						break;
-					}
-				}
+        if (!empty($selected))
+        {
+            if (count($selected) <= $select_limit)
+            {
+                foreach ($selected as $v)
+                {
+                    $is_valid = ($use_values_array && in_array($v, $values)) or (!$use_values_array && in_array($v, $items));
+                    if (!$is_valid)
+                    {
+                        $invalid_value = $v;
+                        break;
+                    }
+                }
 
-				if ($is_valid)
-				{
-					$isError = false === mem_form_store($name, $label, $value);
-				}
-				else
-				{
-					$mem_form_error[] = gTxt('mem_form_invalid_value', array('{label}'=> htmlspecialchars($label), '{value}'=> htmlspecialchars($invalid_value)));
-					$isError = true;
-				}
-			}
-			else
-			{
-				$mem_form_error[] = gTxt('mem_form_invalid_too_many_selected', array(
-											'{label}'=> htmlspecialchars($label),
-											'{count}'=> $select_limit,
-											'{plural}'=> ($select_limit==1 ? gTxt('mem_form_item') : gTxt('mem_form_items'))
-										));
-				$isError = true;
-			}
-		}
+                if ($is_valid)
+                {
+                    $isError = false === mem_form_store($name, $label, $value);
+                }
+                else
+                {
+                    $mem_form_error[] = gTxt('mem_form_invalid_value', array('{label}'=> htmlspecialchars($label), '{value}'=> htmlspecialchars($invalid_value)));
+                    $isError = true;
+                }
+            }
+            else
+            {
+                $mem_form_error[] = gTxt('mem_form_invalid_too_many_selected', array(
+                                            '{label}'=> htmlspecialchars($label),
+                                            '{count}'=> $select_limit,
+                                            '{plural}'=> ($select_limit==1 ? gTxt('mem_form_item') : gTxt('mem_form_items'))
+                                        ));
+                $isError = true;
+            }
+        }
 
-		elseif ($required)
-		{
-			$mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=> htmlspecialchars($label)));
-			$isError = true;
-		}
-	}
-	else if (isset($mem_form_default[$name]))
-	{
-		$selected = array($mem_form_default[$name]);
-	}
+        elseif ($required)
+        {
+            $mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=> htmlspecialchars($label)));
+            $isError = true;
+        }
+    }
+    else if (isset($mem_form_default[$name]))
+    {
+        $selected = array($mem_form_default[$name]);
+    }
 
-	$out = '';
+    $out = '';
 
-	foreach ($items as $item)
-	{
-		$v = $use_values_array ? array_shift($values) : $item;
+    foreach ($items as $item)
+    {
+        $v = $use_values_array ? array_shift($values) : $item;
 
-		$sel = !empty($selected) && in_array($v, $selected);
+        $sel = !empty($selected) && in_array($v, $selected);
 
-		$out .= n.t.'<option'.($use_values_array ? ' value="'.$v.'"' : '').($sel ? ' selected="selected">' : '>').
-				(strlen($item) ? htmlspecialchars($item) : ' ').'</option>';
-	}
+        $out .= n.t.'<option'.($use_values_array ? ' value="'.$v.'"' : '').($sel ? ' selected="selected">' : '>').
+                (strlen($item) ? htmlspecialchars($item) : ' ').'</option>';
+    }
 
-	$isError = $isError ? 'errorElement' : '';
-	$memRequired = $required ? 'memRequired' : '';
-	$class = htmlspecialchars($class);
+    $isError = $isError ? 'errorElement' : '';
+    $memRequired = $required ? 'memRequired' : '';
+    $class = htmlspecialchars($class);
 
-	$multiple = $select_limit > 1 ? ' multiple="multiple"' : '';
+    $multiple = $select_limit > 1 ? ' multiple="multiple"' : '';
 
-	return '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break.
-		n.'<select id="'.$name.'" name="'.$name.'" class="'.$class.' '.$memRequired.$isError.'"' . $multiple .
-			( !empty($attrs) ? ' ' . $attrs : '').'>'.
-			$out.
-		n.'</select>';
+    return '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>'.$break.
+        n.'<select id="'.$name.'" name="'.$name.'" class="'.$class.' '.$memRequired.$isError.'"' . $multiple .
+            ( !empty($attrs) ? ' ' . $attrs : '').'>'.
+            $out.
+        n.'</select>';
 }
 
 function mem_form_checkbox($atts)
 {
-	global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
+    global $mem_form_error, $mem_form_submit, $mem_form_default, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'break'		=> $mem_form_default_break,
-		'checked'	=> 0,
-		'isError'	=> '',
-		'label'		=> gTxt('checkbox'),
-		'name'		=> '',
-		'class'		=> 'memCheckbox',
-		'required'	=> 1,
-		'attrs'		=> ''
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'break'     => $mem_form_default_break,
+        'checked'   => 0,
+        'isError'   => '',
+        'label'     => gTxt('checkbox'),
+        'name'      => '',
+        'class'     => 'memCheckbox',
+        'required'  => 1,
+        'attrs'     => ''
+    ), $atts));
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	if ($mem_form_submit)
-	{
-		$value = (bool) ps($name);
+    if ($mem_form_submit)
+    {
+        $value = (bool) ps($name);
 
-		if ($required and !$value)
-		{
-			$mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=> htmlspecialchars($label)));
-			$isError = true;
-		}
+        if ($required and !$value)
+        {
+            $mem_form_error[] = gTxt('mem_form_field_missing', array('{label}'=> htmlspecialchars($label)));
+            $isError = true;
+        }
 
-		else
-		{
-			$isError = false === mem_form_store($name, $label, $value ? gTxt('yes') : gTxt('no'));
-		}
-	}
+        else
+        {
+            $isError = false === mem_form_store($name, $label, $value ? gTxt('yes') : gTxt('no'));
+        }
+    }
 
-	else {
-		if (isset($mem_form_default[$name]))
-			$value = $mem_form_default[$name];
-		else
-			$value = $checked;
-	}
+    else {
+        if (isset($mem_form_default[$name]))
+            $value = $mem_form_default[$name];
+        else
+            $value = $checked;
+    }
 
-	$isError = $isError ? 'errorElement' : '';
-	$memRequired = $required ? 'memRequired' : '';
-	$class = htmlspecialchars($class);
+    $isError = $isError ? 'errorElement' : '';
+    $memRequired = $required ? 'memRequired' : '';
+    $class = htmlspecialchars($class);
 
-	return '<input type="checkbox" id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'"'.
-		( !empty($attrs) ? ' ' . $attrs : '').
-		($value ? ' checked="checked"' : '').' />'.$break.
-		'<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>';
+    return '<input type="checkbox" id="'.$name.'" class="'.$class.' '.$memRequired.$isError.'" name="'.$name.'"'.
+        ( !empty($attrs) ? ' ' . $attrs : '').
+        ($value ? ' checked="checked"' : '').' />'.$break.
+        '<label for="'.$name.'" class="'.$class.' '.$memRequired.$isError.' '.$name.'">'.htmlspecialchars($label).'</label>';
 }
 
 
 function mem_form_serverinfo($atts)
 {
-	global $mem_form_submit;
+    global $mem_form_submit;
 
-	extract(mem_form_lAtts(array(
-		'label'		=> '',
-		'name'		=> ''
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'label'     => '',
+        'name'      => ''
+    ), $atts));
 
-	if (empty($name)) $name = mem_form_label2name($label);
+    if (empty($name)) $name = mem_form_label2name($label);
 
-	if (strlen($name) and $mem_form_submit)
-	{
-		if (!$label) $label = $name;
-		mem_form_store($name, $label, serverSet($name));
-	}
+    if (strlen($name) and $mem_form_submit)
+    {
+        if (!$label) $label = $name;
+        mem_form_store($name, $label, serverSet($name));
+    }
 }
 
 function mem_form_secret($atts, $thing = '')
 {
-	global $mem_form_submit;
+    global $mem_form_submit;
 
-	extract(mem_form_lAtts(array(
-		'name'	=> '',
-		'label'	=> gTxt('secret'),
-		'value'	=> ''
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'name'  => '',
+        'label' => gTxt('secret'),
+        'value' => ''
+    ), $atts));
 
 
-	$name = mem_form_label2name($name ? $name : $label);
+    $name = mem_form_label2name($name ? $name : $label);
 
-	if ($mem_form_submit)
-	{
-		if ($thing)
-			$value = trim(parse($thing));
-		else
-			$value = trim(parse($value));
+    if ($mem_form_submit)
+    {
+        if ($thing)
+            $value = trim(parse($thing));
+        else
+            $value = trim(parse($value));
 
-		mem_form_store($name, $label, $value);
-	}
+        mem_form_store($name, $label, $value);
+    }
 
-	return '';
+    return '';
 }
 
 function mem_form_hidden($atts, $thing='')
 {
-	global $mem_form_submit, $mem_form_default;
+    global $mem_form_submit, $mem_form_default;
 
-	extract(mem_form_lAtts(array(
-		'name'		=> '',
-		'label'		=> gTxt('hidden'),
-		'value'		=> '',
-		'isError'	=> '',
-		'required'	=> 1,
-		'class'		=> 'memHidden',
-		'escape_value'	=> 1,
-		'attrs'		=> ''
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'name'      => '',
+        'label'     => gTxt('hidden'),
+        'value'     => '',
+        'isError'   => '',
+        'required'  => 1,
+        'class'     => 'memHidden',
+        'escape_value'  => 1,
+        'attrs'     => ''
+    ), $atts));
 
-	$name = mem_form_label2name($name ? $name : $label);
+    $name = mem_form_label2name($name ? $name : $label);
 
-	if ($mem_form_submit)
-	{
-		$value = preg_replace('/^\s*[\r\n]/', '', rtrim(ps($name)));
-		$utf8len = preg_match_all("/./su", ltrim($value), $utf8ar);
-		$hlabel = htmlspecialchars($label);
+    if ($mem_form_submit)
+    {
+        $value = preg_replace('/^\s*[\r\n]/', '', rtrim(ps($name)));
+        $utf8len = preg_match_all("/./su", ltrim($value), $utf8ar);
+        $hlabel = htmlspecialchars($label);
 
-		if (strlen($value))
-		{
-			if (!$utf8len)
-			{
-				$mem_form_error[] = gTxt('mem_form_invalid_utf8', $hlabel);
-				$isError = true;
-			}
-			else
-			{
-				$isError = false === mem_form_store($name, $label, $value);
-			}
-		}
-	}
-	else
-	{
-		if (isset($mem_form_default[$name]))
-			$value = $mem_form_default[$name];
-		else if ($thing)
-			$value = trim(parse($thing));
-	}
+        if (strlen($value))
+        {
+            if (!$utf8len)
+            {
+                $mem_form_error[] = gTxt('mem_form_invalid_utf8', $hlabel);
+                $isError = true;
+            }
+            else
+            {
+                $isError = false === mem_form_store($name, $label, $value);
+            }
+        }
+    }
+    else
+    {
+        if (isset($mem_form_default[$name]))
+            $value = $mem_form_default[$name];
+        else if ($thing)
+            $value = trim(parse($thing));
+    }
 
-	$isError = $isError ? 'errorElement' : '';
-	$memRequired = $required ? 'memRequired' : '';
+    $isError = $isError ? 'errorElement' : '';
+    $memRequired = $required ? 'memRequired' : '';
 
-	if ($escape_value)
-	{
-		$value = htmlspecialchars($value);
-	}
+    if ($escape_value)
+    {
+        $value = htmlspecialchars($value);
+    }
 
-	return '<input type="hidden" class="'.$class.' '.$memRequired.$isError.' '.$name
-			. '" name="'.$name.'" value="'.$value.'" id="'.$name.'" '.$attrs.'/>';
+    return '<input type="hidden" class="'.$class.' '.$memRequired.$isError.' '.$name
+            . '" name="'.$name.'" value="'.$value.'" id="'.$name.'" '.$attrs.'/>';
 }
 
 function mem_form_radio($atts)
 {
-	global $mem_form_error, $mem_form_submit, $mem_form_values, $mem_form_default, $mem_form_default_break;
+    global $mem_form_error, $mem_form_submit, $mem_form_values, $mem_form_default, $mem_form_default_break;
 
-	extract(mem_form_lAtts(array(
-		'break'		=> $mem_form_default_break,
-		'checked'	=> 0,
-		'group'		=> '',
-		'label'		=> gTxt('option'),
-		'name'		=> '',
-		'class'		=> 'memRadio',
-		'isError'	=> '',
-		'attrs'		=> '',
-		'value'		=> false
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'break'     => $mem_form_default_break,
+        'checked'   => 0,
+        'group'     => '',
+        'label'     => gTxt('option'),
+        'name'      => '',
+        'class'     => 'memRadio',
+        'isError'   => '',
+        'attrs'     => '',
+        'value'     => false
+    ), $atts));
 
-	static $cur_name = '';
-	static $cur_group = '';
+    static $cur_name = '';
+    static $cur_group = '';
 
-	if (!$name and !$group and !$cur_name and !$cur_group) {
-		$cur_group = gTxt('radio');
-		$cur_name = $cur_group;
-	}
-	if ($group and !$name and $group != $cur_group) $name = $group;
+    if (!$name and !$group and !$cur_name and !$cur_group) {
+        $cur_group = gTxt('radio');
+        $cur_name = $cur_group;
+    }
+    if ($group and !$name and $group != $cur_group) $name = $group;
 
-	if ($name) $cur_name = $name;
-	else $name = $cur_name;
+    if ($name) $cur_name = $name;
+    else $name = $cur_name;
 
-	if ($group) $cur_group = $group;
-	else $group = $cur_group;
+    if ($group) $cur_group = $group;
+    else $group = $cur_group;
 
-	$id   = 'q'.md5($name.'=>'.$label);
-	$name = mem_form_label2name($name);
+    $id   = 'q'.md5($name.'=>'.$label);
+    $name = mem_form_label2name($name);
 
-	$value = $value === false ? $id : $value;
+    $value = $value === false ? $id : $value;
 
-	if ($mem_form_submit)
-	{
-		$is_checked = (ps($name) == $value);
+    if ($mem_form_submit)
+    {
+        $is_checked = (ps($name) == $value);
 
-		if ($is_checked or $checked and !isset($mem_form_values[$name]))
-		{
-			$isError = false === mem_form_store($name, $group, $value);
-		}
-	}
+        if ($is_checked or $checked and !isset($mem_form_values[$name]))
+        {
+            $isError = false === mem_form_store($name, $group, $value);
+        }
+    }
 
-	else
-	{
-		if (isset($mem_form_default[$name]))
-			$is_checked = $mem_form_default[$name] == $value;
-		else
-			$is_checked = $checked;
-	}
+    else
+    {
+        if (isset($mem_form_default[$name]))
+            $is_checked = $mem_form_default[$name] == $value;
+        else
+            $is_checked = $checked;
+    }
 
-	$class = htmlspecialchars($class);
+    $class = htmlspecialchars($class);
 
-	$isError = $isError ? ' errorElement' : '';
+    $isError = $isError ? ' errorElement' : '';
 
-	return '<input value="'.$value.'" type="radio" id="'.$id.'" class="'.$class.' '.$name.$isError.'" name="'.$name.'"'.
-		( !empty($attrs) ? ' ' . $attrs : '').
-		( $is_checked ? ' checked="checked" />' : ' />').$break.
-		'<label for="'.$id.'" class="'.$class.' '.$name.'">'.htmlspecialchars($label).'</label>';
+    return '<input value="'.$value.'" type="radio" id="'.$id.'" class="'.$class.' '.$name.$isError.'" name="'.$name.'"'.
+        ( !empty($attrs) ? ' ' . $attrs : '').
+        ( $is_checked ? ' checked="checked" />' : ' />').$break.
+        '<label for="'.$id.'" class="'.$class.' '.$name.'">'.htmlspecialchars($label).'</label>';
 }
 
 function mem_form_submit($atts, $thing='')
 {
-	global $mem_form_submit;
+    global $mem_form_submit;
 
-	extract(mem_form_lAtts(array(
-		'button'	=> 0,
-		'label'		=> gTxt('save'),
-		'name'		=> 'mem_form_submit',
-		'class'		=> 'memSubmit',
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'button'    => 0,
+        'label'     => gTxt('save'),
+        'name'      => 'mem_form_submit',
+        'class'     => 'memSubmit',
+    ), $atts));
 
-	$label = htmlspecialchars($label);
-	$name = htmlspecialchars($name);
-	$class = htmlspecialchars($class);
+    $label = htmlspecialchars($label);
+    $name = htmlspecialchars($name);
+    $class = htmlspecialchars($class);
 
-	if ($mem_form_submit)
-	{
-		$value = ps($name);
+    if ($mem_form_submit)
+    {
+        $value = ps($name);
 
-		if (!empty($value) && $value == $label)
-		{
-			// save the clicked button value
-			mem_form_store($name, $label, $value);
-		}
-	}
+        if (!empty($value) && $value == $label)
+        {
+            // save the clicked button value
+            mem_form_store($name, $label, $value);
+        }
+    }
 
-	if ($button or strlen($thing))
-	{
-		return '<button type="submit" class="'.$class.'" name="'.$name.'" value="'.$label.'">'.($thing ? trim(parse($thing)) : $label).'</button>';
-	}
-	else
-	{
-		return '<input type="submit" class="'.$class.'" name="'.$name.'" value="'.$label.'" />';
-	}
+    if ($button or strlen($thing))
+    {
+        return '<button type="submit" class="'.$class.'" name="'.$name.'" value="'.$label.'">'.($thing ? trim(parse($thing)) : $label).'</button>';
+    }
+    else
+    {
+        return '<input type="submit" class="'.$class.'" name="'.$name.'" value="'.$label.'" />';
+    }
 }
 
 function mem_form_lAtts($arr, $atts, $warn=true)
 {
-	foreach(array('button', 'checked', 'required', 'show_input', 'show_error') as $key)
-	{
-		if (isset($atts[$key]))
-		{
-			$atts[$key] = ($atts[$key] === 'yes' or intval($atts[$key])) ? 1 : 0;
-		}
-	}
-	if (isset($atts['break']) and $atts['break'] == 'br') $atts['break'] = '<br />';
-	return lAtts($arr, $atts, $warn);
+    foreach(array('button', 'checked', 'required', 'show_input', 'show_error') as $key)
+    {
+        if (isset($atts[$key]))
+        {
+            $atts[$key] = ($atts[$key] === 'yes' or intval($atts[$key])) ? 1 : 0;
+        }
+    }
+    if (isset($atts['break']) and $atts['break'] == 'br') $atts['break'] = '<br />';
+    return lAtts($arr, $atts, $warn);
 }
 
 function mem_form_label2name($label)
 {
-	$label = trim($label);
-	if (strlen($label) == 0) return 'invalid';
-	if (strlen($label) <= 32 and preg_match('/^[a-zA-Z][A-Za-z0-9:_-]*$/', $label)) return $label;
-	else return 'q'.md5($label);
+    $label = trim($label);
+    if (strlen($label) == 0) return 'invalid';
+    if (strlen($label) <= 32 and preg_match('/^[a-zA-Z][A-Za-z0-9:_-]*$/', $label)) return $label;
+    else return 'q'.md5($label);
 }
 
 function mem_form_store($name, $label, $value)
 {
-	global $mem_form, $mem_form_labels, $mem_form_values;
+    global $mem_form, $mem_form_labels, $mem_form_values;
 
-	$mem_form[$label] = $value;
-	$mem_form_labels[$name] = $label;
-	$mem_form_values[$name] = $value;
+    $mem_form[$label] = $value;
+    $mem_form_labels[$name] = $label;
+    $mem_form_values[$name] = $value;
 
-	$is_valid = false !== callback_event('mem_form.store_value', $name);
+    $is_valid = false !== callback_event('mem_form.store_value', $name);
 
-	// invalid data, unstore it
-	if (!$is_valid)
-		mem_form_remove($name);
+    // invalid data, unstore it
+    if (!$is_valid)
+        mem_form_remove($name);
 
-	return $is_valid;
+    return $is_valid;
 }
 
 function mem_form_remove($name)
 {
-	global $mem_form, $mem_form_labels, $mem_form_values;
+    global $mem_form, $mem_form_labels, $mem_form_values;
 
-	$label = $mem_form_labels[$name];
-	unset($mem_form_labels[$name], $mem_form[$label], $mem_form_values[$name]);
+    $label = $mem_form_labels[$name];
+    unset($mem_form_labels[$name], $mem_form[$label], $mem_form_values[$name]);
 }
 
 function mem_form_display_error()
 {
-	global $mem_form_error;
+    global $mem_form_error;
 
-	$out = n.'<ul class="memError">';
+    $out = n.'<ul class="memError">';
 
-	foreach (array_unique($mem_form_error) as $error)
-	{
-		$out .= n.t.'<li>'.$error.'</li>';
-	}
+    foreach (array_unique($mem_form_error) as $error)
+    {
+        $out .= n.t.'<li>'.$error.'</li>';
+    }
 
-	$out .= n.'</ul>';
+    $out .= n.'</ul>';
 
-	return $out;
+    return $out;
 }
 
 function mem_form_value($atts, $thing)
 {
-	global $mem_form_submit, $mem_form_values, $mem_form_default;
+    global $mem_form_submit, $mem_form_values, $mem_form_default;
 
-	extract(mem_form_lAtts(array(
-		'name'		=> '',
-		'wraptag'	=> '',
-		'class'		=> '',
-		'attributes'=> '',
-		'id'		=> '',
-	), $atts));
+    extract(mem_form_lAtts(array(
+        'name'      => '',
+        'wraptag'   => '',
+        'class'     => '',
+        'attributes'=> '',
+        'id'        => '',
+    ), $atts));
 
-	$out = '';
+    $out = '';
 
-	if ($mem_form_submit)
-	{
-		if (isset($mem_form_values[$name]))
-			$out = $mem_form_values[$name];
-	}
-	else {
-		if (isset($mem_form_default[$name]))
-			$out = $mem_form_default[$name];
-	}
+    if ($mem_form_submit)
+    {
+        if (isset($mem_form_values[$name]))
+            $out = $mem_form_values[$name];
+    }
+    else {
+        if (isset($mem_form_default[$name]))
+            $out = $mem_form_default[$name];
+    }
 
-	return doTag($out, $wraptag, $class, $attributes, $id);
+    return doTag($out, $wraptag, $class, $attributes, $id);
 }
 
 function mem_form_error($err=NULL)
 {
-	global $mem_form_error;
+    global $mem_form_error;
 
-	if (!is_array($mem_form_error))
-		$mem_form_error = array();
+    if (!is_array($mem_form_error))
+        $mem_form_error = array();
 
-	if ($err == NULL)
-		return !empty($mem_form_error) ? $mem_form_error : false;
+    if ($err == NULL)
+        return !empty($mem_form_error) ? $mem_form_error : false;
 
-	$mem_form_error[] = $err;
+    $mem_form_error[] = $err;
 }
 
 function mem_form_default($key,$val=NULL)
 {
-	global $mem_form_default;
+    global $mem_form_default;
 
-	if (is_array($key))
-	{
-		foreach ($key as $k=>$v)
-		{
-			mem_form_default($k,$v);
-		}
-		return;
-	}
+    if (is_array($key))
+    {
+        foreach ($key as $k=>$v)
+        {
+            mem_form_default($k,$v);
+        }
+        return;
+    }
 
-	$name = mem_form_label2name($key);
+    $name = mem_form_label2name($key);
 
-	if ($val == NULL)
-	{
-		return (isset($mem_form_default[$name]) ? $mem_form_default[$name] : false);
-	}
+    if ($val == NULL)
+    {
+        return (isset($mem_form_default[$name]) ? $mem_form_default[$name] : false);
+    }
 
-	$mem_form_default[$name] = $val;
+    $mem_form_default[$name] = $val;
 
-	return $val;
+    return $val;
 }
 
 
 
 function mem_form_mail($from,$reply,$to,$subject,$msg, $content_type='text/plain')
 {
-	global $prefs;
+    global $prefs;
 
     $usePhpMailer = false;
     $mail = null;
@@ -1403,47 +1403,47 @@ function mem_form_mail($from,$reply,$to,$subject,$msg, $content_type='text/plain
         $mail::$validator = 'phpinternal';
         $usePhpMailer = true;
     } elseif (!is_callable('mail')) {
-		return false;
+        return false;
     }
 
-	if (is_array($to)) {
-		$bcc = isset($to['bcc']) ? mem_form_strip($to['bcc']) : '';
-		$deliverTo = isset($to['to']) ? mem_form_strip($to['to']) : '';
-	} else {
-		$bcc = '';
-		$deliverTo = mem_form_strip($to);
-	}
+    if (is_array($to)) {
+        $bcc = isset($to['bcc']) ? mem_form_strip($to['bcc']) : '';
+        $deliverTo = isset($to['to']) ? mem_form_strip($to['to']) : '';
+    } else {
+        $bcc = '';
+        $deliverTo = mem_form_strip($to);
+    }
 
-	// PHPMailer takes care of encoding for us.
-	if (!$usePhpMailer) {
-		$from = mem_form_strip($from);
-		$reply = mem_form_strip($reply);
-		$subject =  mem_form_strip($subject);
-		$msg = mem_form_strip($msg, false);
-	}
+    // PHPMailer takes care of encoding for us.
+    if (!$usePhpMailer) {
+        $from = mem_form_strip($from);
+        $reply = mem_form_strip($reply);
+        $subject =  mem_form_strip($subject);
+        $msg = mem_form_strip($msg, false);
+    }
 
-	if ($prefs['override_emailcharset'] and is_callable('utf8_decode')) {
-		$charset = 'ISO-8859-1';
-		$subject = utf8_decode($subject);
-		$msg     = utf8_decode($msg);
-	} else {
-		$charset = 'UTF-8';
-	}
+    if ($prefs['override_emailcharset'] and is_callable('utf8_decode')) {
+        $charset = 'ISO-8859-1';
+        $subject = utf8_decode($subject);
+        $msg     = utf8_decode($msg);
+    } else {
+        $charset = 'UTF-8';
+    }
 
-	$sep = IS_WIN ? "\r\n" : "\n";
+    $sep = IS_WIN ? "\r\n" : "\n";
 
     if ($usePhpMailer) {
-    	$ret = false;
+        $ret = false;
 
         try {
 //            $mail->IsHTML(true);
 //            $mail->SMTPDebug  = 2;
-        	$smtp_host = get_pref('smtp_host');
-        	$smtp_user = get_pref('smtp_user');
-        	$smtp_pass = get_pref('smtp_pass');
-        	$smtp_port = get_pref('smtp_port');
+            $smtp_host = get_pref('smtp_host');
+            $smtp_user = get_pref('smtp_user');
+            $smtp_pass = get_pref('smtp_pass');
+            $smtp_port = get_pref('smtp_port');
 
-        	if ($smtp_host) {
+            if ($smtp_host) {
                 $mail->IsSMTP();
                 $mail->SMTPAuth = true;
                 $mail->Host = $smtp_host;
@@ -1451,7 +1451,7 @@ function mem_form_mail($from,$reply,$to,$subject,$msg, $content_type='text/plain
                 $mail->Password = $smtp_pass;
                 $mail->SMTPSecure = 'tls';
                 $mail->Port = $smtp_port;
-        	}
+            }
 
             $mail->addAddress($deliverTo);
             $mail->Subject = $subject;
@@ -1459,19 +1459,19 @@ function mem_form_mail($from,$reply,$to,$subject,$msg, $content_type='text/plain
             $mail->CharSet = $charset;
 
             if ($bcc) {
-            	$mail->addBCC($bcc);
+                $mail->addBCC($bcc);
             }
 
             if (is_valid_email($from)) {
                 $mail->setFrom($from);
 
-	            if (is_valid_email($reply)) {
-	                $mail->addReplyTo($reply);
-	            } else {
-	                $mail->addReplyTo($from);
-	            }
+                if (is_valid_email($reply)) {
+                    $mail->addReplyTo($reply);
+                } else {
+                    $mail->addReplyTo($from);
+                }
             } else {
-            	// ToDo: Use the site's main (not sub-) domain?
+                // ToDo: Use the site's main (not sub-) domain?
                 $mail->addReplyTo('no-reply@example.org');
                 $mail->setFrom('no-reply@example.org');
             }
@@ -1489,85 +1489,85 @@ function mem_form_mail($from,$reply,$to,$subject,$msg, $content_type='text/plain
 
         return $ret;
     } else {
-		$headers = 'From: ' . $from .
-			($bcc ? ($sep . 'Bcc: ' . $bcc) : '') .
-			($reply ? ($sep.'Reply-To: '.$reply) : '') .
-			$sep.'X-Mailer: Textpattern (mem_form)' .
-			$sep.'X-Originating-IP: '.mem_form_strip((!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'].' via ' : '').$_SERVER['REMOTE_ADDR']) .
-			$sep.'Content-Transfer-Encoding: 8bit' .
-			$sep.'Content-Type: '.$content_type.'; charset="'.$charset.'"';
+        $headers = 'From: ' . $from .
+            ($bcc ? ($sep . 'Bcc: ' . $bcc) : '') .
+            ($reply ? ($sep.'Reply-To: '.$reply) : '') .
+            $sep.'X-Mailer: Textpattern (mem_form)' .
+            $sep.'X-Originating-IP: '.mem_form_strip((!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'].' via ' : '').$_SERVER['REMOTE_ADDR']) .
+            $sep.'Content-Transfer-Encoding: 8bit' .
+            $sep.'Content-Type: '.$content_type.'; charset="'.$charset.'"';
 
-		$subject = mem_form_mailheader($subject, 'text');
+        $subject = mem_form_mailheader($subject, 'text');
 
-		return mail($deliverTo, $subject, $msg, $headers);
-	}
+        return mail($deliverTo, $subject, $msg, $headers);
+    }
 }
 
 function mem_form_mailheader($string, $type)
 {
-	global $prefs;
+    global $prefs;
 
-	if (!strstr($string,'=?') and !preg_match('/[\x00-\x1F\x7F-\xFF]/', $string)) {
-		if ("phrase" == $type) {
-			if (preg_match('/[][()<>@,;:".\x5C]/', $string)) {
-				$string = '"'. strtr($string, array("\\" => "\\\\", '"' => '\"')) . '"';
-			}
-		}
-		elseif ("text" != $type) {
-			trigger_error('Unknown encode_mailheader type', E_USER_WARNING);
-		}
-		return $string;
-	}
-	if ($prefs['override_emailcharset']) {
-		$start = '=?ISO-8859-1?B?';
-		$pcre  = '/.{1,42}/s';
-	}
-	else {
-		$start = '=?UTF-8?B?';
-		$pcre  = '/.{1,45}(?=[\x00-\x7F\xC0-\xFF]|$)/s';
-	}
-	$end = '?=';
-	$sep = IS_WIN ? "\r\n" : "\n";
-	preg_match_all($pcre, $string, $matches);
-	return $start . join($end.$sep.' '.$start, array_map('base64_encode',$matches[0])) . $end;
+    if (!strstr($string,'=?') and !preg_match('/[\x00-\x1F\x7F-\xFF]/', $string)) {
+        if ("phrase" == $type) {
+            if (preg_match('/[][()<>@,;:".\x5C]/', $string)) {
+                $string = '"'. strtr($string, array("\\" => "\\\\", '"' => '\"')) . '"';
+            }
+        }
+        elseif ("text" != $type) {
+            trigger_error('Unknown encode_mailheader type', E_USER_WARNING);
+        }
+        return $string;
+    }
+    if ($prefs['override_emailcharset']) {
+        $start = '=?ISO-8859-1?B?';
+        $pcre  = '/.{1,42}/s';
+    }
+    else {
+        $start = '=?UTF-8?B?';
+        $pcre  = '/.{1,45}(?=[\x00-\x7F\xC0-\xFF]|$)/s';
+    }
+    $end = '?=';
+    $sep = IS_WIN ? "\r\n" : "\n";
+    preg_match_all($pcre, $string, $matches);
+    return $start . join($end.$sep.' '.$start, array_map('base64_encode',$matches[0])) . $end;
 }
 
 function mem_form_strip($str, $header = TRUE) {
-	if ($header) $str = strip_rn($str);
-	return preg_replace('/[\x00]/', ' ', $str);
+    if ($header) $str = strip_rn($str);
+    return preg_replace('/[\x00]/', ' ', $str);
 }
 
 ///////////////////////////////////////////////
 // Spam Evaluator
 class mem_form_evaluation
 {
-	var $status;
+    var $status;
 
-	function mem_form_evaluation() {
-		$this->status = 0;
-	}
+    function mem_form_evaluation() {
+        $this->status = 0;
+    }
 
-	function add_status($rating=-1) {
-		$this->status += $rating;
-	}
+    function add_status($rating=-1) {
+        $this->status += $rating;
+    }
 
-	function get_status() {
-		return $this->status;
-	}
+    function get_status() {
+        return $this->status;
+    }
 
-	function is_spam() {
-		return ($this->status < 0);
-	}
+    function is_spam() {
+        return ($this->status < 0);
+    }
 }
 
 function &get_mem_form_evaluator()
 {
-	static $instance;
+    static $instance;
 
-	if(!isset($instance)) {
-		$instance = new mem_form_evaluation();
-	}
-	return $instance;
+    if(!isset($instance)) {
+        $instance = new mem_form_evaluation();
+    }
+    return $instance;
 }
 # --- END PLUGIN CODE ---
 if (0) {
