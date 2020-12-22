@@ -7,7 +7,6 @@ This plugin provides HTML form capabilities for other plugins. This allows for c
 h2(#author-contact). Author Contact
 
 "Michael Manfre":mailto:mmanfre@gmail.com?subject=Textpattern%20mem_form%20plugin
-"$":http://manfre.net
 
 h2(#license). License
 
