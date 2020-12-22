@@ -1309,13 +1309,21 @@ function mem_form_default($key,$val = null)
 
 function mem_form_mail($from, $reply, $to, $subject, $msg, $content_type = 'text/plain')
 {
-    global $prefs;
+    global $prefs $production_status;
 
     $usePhpMailer = false;
     $mail = null;
 
     if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
         $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+
+        if ($production_status === 'debug') {
+            $mail->SMTPDebug  = 3;
+        } elseif ($production_status === 'testing') {
+            $mail->SMTPDebug  = 2;
+        }
+
+        // Bypass the fact that PHPMailer clashes with <txp:php>.
         $mail::$validator = 'phpinternal';
         $usePhpMailer = true;
     } elseif (!is_callable('mail')) {
