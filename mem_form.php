@@ -1309,7 +1309,7 @@ function mem_form_default($key,$val = null)
 
 function mem_form_mail($from, $reply, $to, $subject, $msg, $content_type = 'text/plain')
 {
-    global $prefs $production_status;
+    global $prefs, $production_status;
 
     $usePhpMailer = false;
     $mail = null;
